@@ -18,7 +18,9 @@ export default async function generateActivity(param: string, c: Context) {
     }
     
   let media = []
-  let desc = (videoInfo.desc + "<br><br>").replace(/@(\w+)/g, '<a href="https://tiktok.com/@$1">@$1</a>')
+  let desc = (videoInfo.desc + "<br><br>")
+    .replace(/@(\w+)/g, '<a href="https://tiktok.com/@$1">@$1</a>')
+    .replace(/#(\w+)/g, '<a href="https://www.tiktok.com/tag/$1">#$1</a>')
 
   if (videoInfo.video.playAddr) {
     media.push({
