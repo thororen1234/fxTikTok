@@ -2,6 +2,7 @@ import MetaHelper from '../../util/metaHelper'
 import { UserInfo } from '../../types/Web'
 import { Context } from 'hono'
 import { env } from 'hono/adapter'
+import { formatNumber } from '@/util/format'
 
 export function ProfileResponse(data: UserInfo, c: Context): JSX.Element {
   const { OFF_LOAD } = env(c) as { OFF_LOAD: string }
@@ -18,7 +19,7 @@ export function ProfileResponse(data: UserInfo, c: Context): JSX.Element {
           },
           {
             name: 'og:title',
-            content: `${data.user.nickname} (@${data.user.uniqueId})`
+            content: `👥 ${formatNumber(data.stats.followerCount)} ❤️ ${formatNumber(data.stats.heartCount)} 🎥 ${formatNumber(data.stats.videoCount)}`
           },
           {
             name: 'theme-color',
@@ -62,7 +63,7 @@ export function ProfileResponse(data: UserInfo, c: Context): JSX.Element {
           },
           {
             name: 'twitter:card',
-            content: 'summary_large_image'
+            content: 'summary'
           },
           {
             name: 'og:description',
@@ -72,7 +73,6 @@ export function ProfileResponse(data: UserInfo, c: Context): JSX.Element {
         {
           unique_id: data.user.uniqueId,
           nickname: data.user.nickname,
-          ...(data.user.signature ? { description: Buffer.from(data.user.signature, 'utf-8').toString('base64') } : {})
         }
       )}
     </>
