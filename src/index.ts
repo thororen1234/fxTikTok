@@ -23,9 +23,9 @@ app.get('/', () => {
 })
 
 async function handleShort(c: any): Promise<Response> {
-  const { input } = c.req.param()
-  if (input.startsWith('@')) return handleProfile(c) // since its a short url (/@username), busted way of doing this since its technically defined as videoId. it's 12 am ok
-  let id = input.split('.')[0] // for .mp4, .webp, etc.
+  const { videoId } = c.req.param()
+  if (videoId.startsWith('@')) return handleProfile(c) // since its a short url (/@username), busted way of doing this since its technically defined as videoId. it's 12 am ok
+  let id = videoId.split('.')[0] // for .mp4, .webp, etc.
 
   const link = await grabAwemeId(id)
 
