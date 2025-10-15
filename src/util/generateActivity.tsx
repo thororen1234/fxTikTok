@@ -16,39 +16,43 @@ export default async function generateActivity(param: string, c: Context) {
     return {
       error: videoInfo.message
     }
-    
+
   let media = []
 
-  const title = videoInfo.imagePost && videoInfo.imagePost.title ? `<b>${videoInfo.imagePost.title}</b><br>` : ""
+  const title = videoInfo.imagePost && videoInfo.imagePost.title ? `<b>${videoInfo.imagePost.title}</b><br>` : ''
 
-  let descText = videoInfo.contents && videoInfo.contents.length > 0
-    ? videoInfo.contents.map(content => {
-        let text = content.desc
-        
-        const extras = [...(content.textExtra || [])].sort((a, b) => b.start - a.start)
-        
-        extras.forEach(extra => {
-          const originalText = text.substring(extra.start, extra.end)
-          
-          if (extra.type === 0 && extra.userUniqueId) {
-            text = text.substring(0, extra.start) + 
-              `<a href="https://tiktok.com/@${extra.userUniqueId}">${originalText}</a>` +
-              text.substring(extra.end)
-          } else if (extra.type === 1 && extra.hashtagName) {
-            text = text.substring(0, extra.start) + 
-              `<a href="https://www.tiktok.com/tag/${extra.hashtagName}">${originalText}</a>` +
-              text.substring(extra.end)
-          }
-        })
-        
-        return text
-      }).join('<br>')
-    : videoInfo.desc
-      .replace(/@([\w']+)/g, '<a href="https://tiktok.com/@$1">@$1</a>')
-      .replace(/#(\w+)/g, '<a href="https://www.tiktok.com/tag/$1">#$1</a>')
+  let descText =
+    videoInfo.contents && videoInfo.contents.length > 0
+      ? videoInfo.contents
+          .map((content) => {
+            let text = content.desc
 
-  let desc = title + descText + "<br><br>"
+            const extras = [...(content.textExtra || [])].sort((a, b) => b.start - a.start)
 
+            extras.forEach((extra) => {
+              const originalText = text.substring(extra.start, extra.end)
+
+              if (extra.type === 0 && extra.userUniqueId) {
+                text =
+                  text.substring(0, extra.start) +
+                  `<a href="https://tiktok.com/@${extra.userUniqueId}">${originalText}</a>` +
+                  text.substring(extra.end)
+              } else if (extra.type === 1 && extra.hashtagName) {
+                text =
+                  text.substring(0, extra.start) +
+                  `<a href="https://www.tiktok.com/tag/${extra.hashtagName}">${originalText}</a>` +
+                  text.substring(extra.end)
+              }
+            })
+
+            return text
+          })
+          .join('<br>')
+      : videoInfo.desc
+          .replace(/@([\w']+)/g, '<a href="https://tiktok.com/@$1">@$1</a>')
+          .replace(/#(\w+)/g, '<a href="https://www.tiktok.com/tag/$1">#$1</a>')
+
+  let desc = title + descText + '<br><br>'
 
   if (videoInfo.video.playAddr) {
     media.push({

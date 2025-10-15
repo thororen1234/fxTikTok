@@ -1,4 +1,4 @@
-import { WebJSONResponse, ItemStruct } from '../types/Web'
+import { WebJSONResponse, ItemStruct, WebappUserDetail, WebappVideoDetail, UserInfo } from '../types/Web'
 import { LiveWebJSONResponse, LiveRoom } from '../types/Live'
 import Cookie from '../util/cookieHelper'
 import cookieParser from 'set-cookie-parser'
@@ -24,14 +24,14 @@ function processCookies(response: Response): void {
 function extractJsonFromScript(html: string, scriptId: string): string {
   const startTag = `<script id="${scriptId}" type="application/json">`
   const endTag = '</script>'
-  
+
   const startIndex = html.indexOf(startTag)
   if (startIndex === -1) throw new Error(`Script tag with id "${scriptId}" not found`)
-  
+
   const jsonStart = startIndex + startTag.length
   const jsonEnd = html.indexOf(endTag, jsonStart)
   if (jsonEnd === -1) throw new Error(`End tag not found for script "${scriptId}"`)
-  
+
   return html.substring(jsonStart, jsonEnd)
 }
 
@@ -41,21 +41,21 @@ async function fetchTikTokPage(url: string, cacheOptions?: any): Promise<string>
     headers: getCommonHeaders(),
     ...(cacheOptions && { cf: cacheOptions })
   })
-  
+
   processCookies(response)
   return await response.text()
 }
 
 export async function grabAwemeId(videoId: string): Promise<URL> {
   const res = await fetch('https://vm.tiktok.com/' + videoId, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)',
-      },
-      cf: {
-        cacheEverything: false,
-        cacheTtlByStatus: { '301-302': 86400, 404: 1, '500-599': 0 }
-      },
-      "redirect": "manual"
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)'
+    },
+    cf: {
+      cacheEverything: false,
+      cacheTtlByStatus: { '301-302': 86400, 404: 1, '500-599': 0 }
+    },
+    redirect: 'manual'
   })
   const location = res.headers.get('Location') || res.headers.get('location')
   if (!location) throw new Error('No Location header found in response')
@@ -80,28 +80,49 @@ export async function scrapeAvatarUri(username: string): Promise<string | Error>
   }
 }
 
-export async function scrapeVideoData(awemeId: string, author?: string): Promise<ItemStruct | Error> {
-  try {
-    const html = await fetchTikTokPage(`https://www.tiktok.com/@${author || 'i'}/video/${awemeId}`, {
-      cacheEverything: false,
-      cacheTtlByStatus: { '200-299': 86400, 404: 1, '500-599': 0 }
-    })
+export async function scrapePageData(url: string, scopeType: 'webapp.video-detail', cacheOptions?: any): Promise<WebappVideoDetail | Error>
 
+export async function scrapePageData(url: string, scopeType: 'webapp.user-detail', cacheOptions?: any): Promise<WebappUserDetail | Error>
+
+export async function scrapePageData(
+  url: string,
+  scopeType: 'webapp.video-detail' | 'webapp.user-detail',
+  cacheOptions?: any
+): Promise<WebappUserDetail | WebappVideoDetail | Error> {
+  try {
+    const html = await fetchTikTokPage(url, cacheOptions)
     const resJson = extractJsonFromScript(html, '__UNIVERSAL_DATA_FOR_REHYDRATION__')
     const json: WebJSONResponse = JSON.parse(resJson)
 
-    if (
-      !json['__DEFAULT_SCOPE__']['webapp.video-detail'] ||
-      json['__DEFAULT_SCOPE__']['webapp.video-detail'].statusCode == 10204
-    ) {
-      return new Error('Could not find video data')
+    const scopeData = json['__DEFAULT_SCOPE__'][scopeType]
+
+    if (!scopeData || scopeData.statusCode === 10204) {
+      return new Error(`Could not find ${scopeType} data`)
     }
 
-    const videoInfo = json['__DEFAULT_SCOPE__']['webapp.video-detail']['itemInfo']['itemStruct']
-    return videoInfo
+    return scopeData
   } catch (err) {
-    return new Error('Could not parse video info')
+    return new Error(`Could not parse ${scopeType} data`)
   }
+}
+
+export async function scrapeVideoData(awemeId: string, author?: string): Promise<ItemStruct | Error> {
+  const result = await scrapePageData(`https://www.tiktok.com/@${author || 'i'}/video/${awemeId}`, 'webapp.video-detail', {
+    cacheEverything: false,
+    cacheTtlByStatus: { '200-299': 86400, 404: 1, '500-599': 0 }
+  })
+
+  if (result instanceof Error) return result
+  return result.itemInfo.itemStruct
+}
+
+export async function scrapeProfileData(username: string): Promise<UserInfo | Error> {
+  const result = await scrapePageData(`https://www.tiktok.com/@${username}`, 'webapp.user-detail')
+
+  if (result instanceof Error) return result
+  if (!result.userInfo) return new Error('Could not find user data')
+
+  return result.userInfo
 }
 
 export async function scrapeLiveData(author: string): Promise<LiveRoom | Error> {

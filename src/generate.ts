@@ -60,7 +60,7 @@ generate.get('/video/:videoId', async (c) => {
       return c.redirect(videoPlayUrl)
     } else {
       throw new Error('Could not find an aweme play URL')
-	}
+    }
   } catch (e) {
     return new Response((e as Error).message, {
       status: 500,

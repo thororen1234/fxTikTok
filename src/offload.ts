@@ -10,13 +10,13 @@ const firstStart = Date.now()
 //     const url = c.req.url
 //     const userAgent = c.req.header('User-Agent') || 'Unknown'
 //     const startTime = Date.now()
-    
+
 //     await next()
-    
+
 //     const endTime = Date.now()
 //     const duration = endTime - startTime
 //     const status = c.res.status
-    
+
 //     console.log(`[${new Date().toISOString()}] ${c.req.method} ${url} ${status} ${duration}ms - User-Agent: ${userAgent}`)
 // })
 

@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
-import { scrapeLiveData, scrapeVideoData } from './services/tiktok'
+import { scrapeLiveData, scrapeProfileData, scrapeVideoData } from './services/tiktok'
 import { grabAwemeId } from './services/tiktok'
 import { VideoResponse, ErrorResponse, LiveResponse, WarningResponse } from './templates'
 import { returnHTMLResponse } from './util/responseHelper'
 import { env } from 'hono/adapter'
 import { generate, respondAlternative, awemeIdPattern, awemeLinkPattern } from './generate'
+import { ProfileResponse } from './templates/pages/ProfileResponse'
 
 const app = new Hono()
 
@@ -22,8 +23,9 @@ app.get('/', () => {
 })
 
 async function handleShort(c: any): Promise<Response> {
-  const { videoId } = c.req.param()
-  let id = videoId.split('.')[0] // for .mp4, .webp, etc.
+  const { input } = c.req.param()
+  if (input.startsWith('@')) return handleProfile(c) // since its a short url (/@username), busted way of doing this since its technically defined as videoId. it's 12 am ok
+  let id = input.split('.')[0] // for .mp4, .webp, etc.
 
   const link = await grabAwemeId(id)
 
@@ -55,6 +57,36 @@ async function handleShort(c: any): Promise<Response> {
     const responseContent = await ErrorResponse('Invalid vm link', c)
     return returnHTMLResponse(responseContent, 400)
   }
+}
+
+async function handleProfile(c: any): Promise<Response> {
+  const { author } = c.req.param()
+  let authorName = author.startsWith('@') ? author.substring(1) : author
+
+  // If the user agent is a bot, redirect to the TikTok page
+  if (!BOT_REGEX.test(c.req.header('User-Agent') || '')) {
+    const url = new URL(c.req.url)
+
+    // Remove tracking parameters
+    url.search = ''
+
+    return new Response('', {
+      status: 302,
+      headers: {
+        Location: 'https://www.tiktok.com' + url.pathname
+      }
+    })
+  }
+
+  const profileInfo = await scrapeProfileData(authorName)
+
+  if (profileInfo instanceof Error) {
+    const responseContent = await ErrorResponse((profileInfo as Error).message, c)
+    return returnHTMLResponse(responseContent, 500)
+  }
+
+  const responseContent = await ProfileResponse(profileInfo, c)
+  return returnHTMLResponse(responseContent)
 }
 
 async function handleVideo(c: any): Promise<Response> {
