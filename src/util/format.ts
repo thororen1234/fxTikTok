@@ -1,16 +1,17 @@
 export function formatNumber(value: string | number): string {
   if (value === '0') return '0'
 
-  // parse num to int
-  const num = typeof value === 'string' ? parseInt(value) : value
+  const num = typeof value === 'string' ? parseInt(value, 10) : value
 
   if (num < 1000) return num.toString()
-  if (num < 10000) return (num / 1000).toFixed(1) + 'k'
-  if (num < 1000000) return (num / 1000).toFixed(1) + 'k'
-  if (num < 10000000) return (num / 1000000).toFixed(1) + 'M'
-  if (num < 1000000000) return (num / 1000000).toFixed(1) + 'M'
-  if (num < 10000000000) return (num / 1000000000).toFixed(1) + 'B'
-  return (num / 1000000000).toFixed(0) + 'B'
+  const strip = (s: string) => s.replace(/\.0$/, '')
+
+  if (num < 10000) return strip((num / 1000).toFixed(1)) + 'K'
+  if (num < 1000000) return strip((num / 1000).toFixed(1)) + 'K'
+  if (num < 10000000) return strip((num / 1000000).toFixed(1)) + 'M'
+  if (num < 1000000000) return strip((num / 1000000).toFixed(1)) + 'M'
+  if (num < 10000000000) return strip((num / 1000000000).toFixed(1)) + 'B'
+  return strip((num / 1000000000).toFixed(0)) + 'B'
 }
 
 export function formatTime(time: number): string {

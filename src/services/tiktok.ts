@@ -2,8 +2,34 @@ import { WebJSONResponse, ItemStruct, WebappUserDetail, WebappVideoDetail, UserI
 import { LiveWebJSONResponse, LiveRoom } from '../types/Live'
 import Cookie from '../util/cookieHelper'
 import cookieParser from 'set-cookie-parser'
+import { createClient } from 'redis'
 
 const cookie = new Cookie([])
+
+let redisClient: ReturnType<typeof createClient> | null = null
+const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true'
+const REDIS_TTL = 86400
+
+async function getRedisClient() {
+  if (!REDIS_ENABLED) return null
+
+  if (!redisClient) {
+    redisClient = createClient({
+      url: process.env.REDIS_URL
+    })
+
+    redisClient.on('error', (err) => console.error('Redis Client Error', err))
+
+    try {
+      await redisClient.connect()
+    } catch (err) {
+      console.error('Failed to connect to Redis:', err)
+      return null
+    }
+  }
+
+  return redisClient
+}
 
 function getCommonHeaders(): HeadersInit {
   return {
@@ -80,34 +106,72 @@ export async function scrapeAvatarUri(username: string): Promise<string | Error>
   }
 }
 
-export async function scrapePageData(url: string, scopeType: 'webapp.video-detail', cacheOptions?: any): Promise<WebappVideoDetail | Error>
+export async function scrapePageData(id: string, scopeType: 'video', cacheOptions?: any): Promise<WebappVideoDetail | Error>
 
-export async function scrapePageData(url: string, scopeType: 'webapp.user-detail', cacheOptions?: any): Promise<WebappUserDetail | Error>
+export async function scrapePageData(id: string, scopeType: 'user', cacheOptions?: any): Promise<WebappUserDetail | Error>
 
 export async function scrapePageData(
-  url: string,
-  scopeType: 'webapp.video-detail' | 'webapp.user-detail',
+  id: string,
+  scopeType: 'video' | 'user',
   cacheOptions?: any
 ): Promise<WebappUserDetail | WebappVideoDetail | Error> {
+  const scope = scopeType == 'video' ? 'webapp.video-detail' : scopeType == 'user' ? 'webapp.user-detail' : scopeType
+  const cacheKey = `tiktok:${scopeType}:${id}`
+
   try {
+    const redis = await getRedisClient()
+
+    if (redis) {
+      try {
+        const cached = await redis.get(cacheKey)
+        if (cached) {
+          return JSON.parse(cached)
+        }
+      } catch (redisErr) {
+        console.error('Redis error:', redisErr)
+      }
+    }
+
+    const url = scopeType === 'video' ? `https://www.tiktok.com/@i/video/${id}` : `https://www.tiktok.com/@${id}`
     const html = await fetchTikTokPage(url, cacheOptions)
     const resJson = extractJsonFromScript(html, '__UNIVERSAL_DATA_FOR_REHYDRATION__')
     const json: WebJSONResponse = JSON.parse(resJson)
 
-    const scopeData = json['__DEFAULT_SCOPE__'][scopeType]
+    const scopeData = json['__DEFAULT_SCOPE__'][scope]
 
     if (!scopeData || scopeData.statusCode === 10204) {
       return new Error(`Could not find ${scopeType} data`)
     }
 
+    if (redis) {
+      try {
+        await redis.setEx(cacheKey, REDIS_TTL, JSON.stringify(scopeData))
+        console.log(`Cached ${cacheKey} for ${REDIS_TTL}s`)
+
+        if (scopeType == 'video') {
+          // cache user for pfp
+          const user = json['__DEFAULT_SCOPE__']['webapp.user-detail']
+
+          if (user && user.statusCode !== 10204) {
+            const otherCacheKey = `tiktok:user:${user.userInfo.user.uniqueId}`
+            await redis.setEx(otherCacheKey, REDIS_TTL, JSON.stringify(user))
+            console.log(`Also cached ${otherCacheKey} for ${REDIS_TTL}s`)
+          }
+        }
+      } catch (redisErr) {
+        console.error('Redis set error:', redisErr)
+      }
+    }
+
     return scopeData
   } catch (err) {
+    console.error(err)
     return new Error(`Could not parse ${scopeType} data`)
   }
 }
 
 export async function scrapeVideoData(awemeId: string, author?: string): Promise<ItemStruct | Error> {
-  const result = await scrapePageData(`https://www.tiktok.com/@${author || 'i'}/video/${awemeId}`, 'webapp.video-detail', {
+  const result = await scrapePageData(awemeId, 'video', {
     cacheEverything: false,
     cacheTtlByStatus: { '200-299': 86400, 404: 1, '500-599': 0 }
   })
@@ -117,7 +181,7 @@ export async function scrapeVideoData(awemeId: string, author?: string): Promise
 }
 
 export async function scrapeProfileData(username: string): Promise<UserInfo | Error> {
-  const result = await scrapePageData(`https://www.tiktok.com/@${username}`, 'webapp.user-detail')
+  const result = await scrapePageData(username, 'user')
 
   if (result instanceof Error) return result
   if (!result.userInfo) return new Error('Could not find user data')

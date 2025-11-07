@@ -117,6 +117,7 @@ export default async function generateActivity(param: string, c: Context) {
       ' 🔁 ' +
       formatNumber(videoInfo.stats.shareCount) +
       '</b>',
+    // (videoInfo.music && videoInfo.music.original == false && forceDescription ? '<br>🎵 ' + videoInfo.music.authorName + ' - ' + videoInfo.music.title : ''),
     spoiler_text: '',
     language: null,
     visibility: 'public',
