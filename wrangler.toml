@@ -5,6 +5,9 @@ node_compat = true
 
 vars = { WORKER_ENV = "production", OFF_LOAD = "https://offload.tnktok.com" }
 
+[alias]
+"redis" = "./src/shims/redis-shim.mjs"
+
 [env.staging]
 name = "fxtiktok-rewrite-dev"
 vars = { WORKER_ENV = "staging", OFF_LOAD = "https://fxtiktok-rewrite-dev.dargy.workers.dev" }
