@@ -24,7 +24,7 @@ app.get('/', () => {
 
 async function handleShort(c: any): Promise<Response> {
   const { videoId } = c.req.param()
-  if (videoId.startsWith('@')) return handleProfile(c) // since its a short url (/@username), busted way of doing this since its technically defined as videoId. it's 12 am ok
+  if (videoId.startsWith('@')) return handleProfile(videoId.startsWith('@') ? videoId.substring(1) : videoId, c) // since its a short url (/@username), busted way of doing this since its technically defined as videoId. it's 12 am ok
   let id = videoId.split('.')[0] // for .mp4, .webp, etc.
 
   const link = await grabAwemeId(id)
@@ -59,10 +59,7 @@ async function handleShort(c: any): Promise<Response> {
   }
 }
 
-async function handleProfile(c: any): Promise<Response> {
-  const { author } = c.req.param()
-  let authorName = author.startsWith('@') ? author.substring(1) : author
-
+async function handleProfile(author: string, c: any): Promise<Response> {
   // If the user agent is a bot, redirect to the TikTok page
   if (!BOT_REGEX.test(c.req.header('User-Agent') || '')) {
     const url = new URL(c.req.url)
@@ -78,7 +75,7 @@ async function handleProfile(c: any): Promise<Response> {
     })
   }
 
-  const profileInfo = await scrapeProfileData(authorName)
+  const profileInfo = await scrapeProfileData(author)
 
   if (profileInfo instanceof Error) {
     const responseContent = await ErrorResponse((profileInfo as Error).message, c)
