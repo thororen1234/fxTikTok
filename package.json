@@ -2,6 +2,7 @@
   "name": "fxtiktok",
   "version": "1.0.0",
   "scripts": {
+    "start": "bun run src/index.ts",
     "dev": "wrangler dev src/index.ts --env=local",
     "build": "wrangler build",
     "deploy": "wrangler deploy --minify src/index.ts",

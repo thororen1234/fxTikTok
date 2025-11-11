@@ -3,7 +3,7 @@ export const generate = new Hono()
 
 import generateAlternate from './util/generateAlternate'
 import generateActivity from './util/generateActivity'
-import { scrapeAvatarUri, scrapeVideoData } from './services/tiktok'
+import { scrapePfpData, scrapeVideoData } from './services/tiktok'
 
 export const awemeIdPattern = /^\d{1,19}$/
 export const awemeLinkPattern = /\/@?([\w\d_.]*)\/(video|photo|live)\/?(\d{19})?/
@@ -141,7 +141,6 @@ generate.get('/image/:videoId/:imageCount', async (c) => {
       return c.redirect(imageJson.data.images[imageIndex])
     }
   } catch (e) {
-    console.log(e)
     return new Response((e as Error).message, {
       status: 500,
       headers: {
@@ -155,9 +154,11 @@ generate.get('/pfp/:author', async (c) => {
   const { author } = c.req.param()
 
   try {
-    const data = await scrapeAvatarUri(author)
+    const data = await scrapePfpData(author)
 
     if (data instanceof Error) {
+      if (data.message === 'Restricted') return c.redirect('https://pldrs.tnktok.com/restricted.png')
+
       return new Response((data as Error).message, {
         status: 500,
         headers: {
@@ -166,7 +167,7 @@ generate.get('/pfp/:author', async (c) => {
       })
     }
 
-    return c.redirect(data)
+    return c.redirect(data.avatarMedium || data.avatarLarger || data.avatarThumb)
   } catch (e) {
     return new Response((e as Error).message, {
       status: 500,

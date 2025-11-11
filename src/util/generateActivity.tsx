@@ -88,7 +88,7 @@ export default async function generateActivity(param: string, c: Context) {
         remote_url: null,
         preview_remote_url: null,
         text_url: null,
-        ...(videoInfo.imagePost.images.length > 4
+        ...(videoInfo.imagePost.images.length > maxImages
           ? {
               description: 'Image (' + (i + 1) + ' of ' + videoInfo.imagePost.images.length + ')'
             }
@@ -138,8 +138,8 @@ export default async function generateActivity(param: string, c: Context) {
       discoverable: true,
       indexable: false,
       group: false,
-      avatar: offloadUrl + '/generate/pfp/' + videoInfo.author.uniqueId,
-      avatar_static: offloadUrl + '/generate/pfp/' + videoInfo.author.uniqueId,
+      avatar: offloadUrl + '/generate/pfp/' + videoInfo.author.id,
+      avatar_static: offloadUrl + '/generate/pfp/' + videoInfo.author.id,
       followers_count: videoInfo.stats.followerCount,
       following_count: videoInfo.stats.followingCount,
       header: null,

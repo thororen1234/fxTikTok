@@ -54,7 +54,7 @@ export function LiveResponse(data: LiveRoom, c: Context): JSX.Element {
           },
           {
             name: 'og:image',
-            content: offloadUrl + '/generate/pfp/' + data.liveRoomUserInfo.user.uniqueId
+            content: offloadUrl + '/generate/pfp/' + data.liveRoomUserInfo.user.id
           },
           {
             name: 'og:image:type',

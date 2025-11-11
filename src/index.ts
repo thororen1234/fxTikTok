@@ -271,4 +271,7 @@ routes.forEach((route) => {
   app.get(route.path + '/', route.handler)
 })
 
-export default app
+export default {
+  ...(process.env.PORT ? { port: parseInt(process.env.PORT) } : {}),
+  ...app
+}

@@ -43,7 +43,7 @@ export function ProfileResponse(data: UserInfo, c: Context): JSX.Element {
           },
           {
             name: 'og:image',
-            content: offloadUrl + '/generate/pfp/' + data.user.uniqueId
+            content: offloadUrl + '/generate/pfp/' + data.user.id
           },
           {
             name: 'og:image:type',
@@ -72,7 +72,7 @@ export function ProfileResponse(data: UserInfo, c: Context): JSX.Element {
         ],
         {
           unique_id: data.user.uniqueId,
-          nickname: data.user.nickname,
+          nickname: data.user.nickname
         }
       )}
     </>

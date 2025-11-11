@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Context, Hono } from 'hono'
 import { generate, respondAlternative } from './generate'
 import generateActivity from './util/generateActivity'
 
@@ -6,19 +6,21 @@ const app = new Hono()
 const PORT = 8787
 const firstStart = Date.now()
 
-// app.use('*', async (c, next) => {
-//     const url = c.req.url
-//     const userAgent = c.req.header('User-Agent') || 'Unknown'
-//     const startTime = Date.now()
+export const logMiddleware = () => async (c: Context, next: () => Promise<void>) => {
+  const url = c.req.url
+  const userAgent = c.req.header('User-Agent') || 'Unknown'
+  const startTime = Date.now()
 
-//     await next()
+  await next()
 
-//     const endTime = Date.now()
-//     const duration = endTime - startTime
-//     const status = c.res.status
+  const endTime = Date.now()
+  const duration = endTime - startTime
+  const status = c.res.status
 
-//     console.log(`[${new Date().toISOString()}] ${c.req.method} ${url} ${status} ${duration}ms - User-Agent: ${userAgent}`)
-// })
+  console.log(`[${new Date().toISOString()}] ${c.req.method} ${url} ${status} ${duration}ms - User-Agent: ${userAgent}`)
+}
+
+app.use('*', logMiddleware())
 
 app.get('/', () => {
   return new Response(
@@ -35,19 +37,6 @@ app.get('/', () => {
       }
     }
   )
-})
-
-app.get('/api/v1/statuses/:videoId', async (c) => {
-  const { videoId } = c.req.param()
-
-  const content = JSON.stringify(await generateActivity(videoId, c))
-  return new Response(content, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/activity+json; charset=utf-8',
-      'Cache-Control': 'public, max-age=0'
-    }
-  })
 })
 
 app.get('/api/v1/statuses/:videoId', async (c) => respondAlternative(c))
