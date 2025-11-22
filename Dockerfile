@@ -1,8 +1,8 @@
 FROM oven/bun:latest
 WORKDIR /app
 
-COPY package*.json ./
-COPY bun.lock ./
+COPY package*.json bun.lock ./
+
 RUN bun i
 COPY . .
 COPY start.sh .
