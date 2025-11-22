@@ -2,11 +2,11 @@ name: Build and Push Docker Image
 
 on:
     push:
-        branches: ['main']
+        branches: ['hono-rewrite']
         tags: ['v*']
     workflow_dispatch:
     pull_request:
-        branches: ['main']
+        branches: ['hono-rewrite']
 
 env:
     REGISTRY: ghcr.io
