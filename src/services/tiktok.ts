@@ -73,6 +73,20 @@ async function fetchTikTokPage(url: string, cacheOptions?: any): Promise<string>
 }
 
 export async function grabAwemeId(videoId: string): Promise<URL> {
+  const redis = await getRedisClient()
+  const cacheKey = `tiktok:aweme:${videoId}`
+
+  if (redis) {
+    try {
+      const cached = await redis.get(cacheKey)
+      if (cached) {
+        return new URL(cached)
+      }
+    } catch (err) {
+      console.error('Redis error:', err)
+    }
+  }
+
   const res = await fetch('https://vm.tiktok.com/' + videoId, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)'
@@ -85,6 +99,15 @@ export async function grabAwemeId(videoId: string): Promise<URL> {
   })
   const location = res.headers.get('Location') || res.headers.get('location')
   if (!location) throw new Error('No Location header found in response')
+
+  if (redis) {
+    try {
+      await redis.setEx(cacheKey, REDIS_TTL, location)
+    } catch (err) {
+      console.error('Redis set error:', err)
+    }
+  }
+
   return new URL(location)
 }
 
