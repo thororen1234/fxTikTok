@@ -7,7 +7,7 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
   const { OFF_LOAD } = env(c) as { OFF_LOAD: string }
   const offloadUrl = OFF_LOAD || 'https://offload.tnktok.com'
 
-  let videoUrl = offloadUrl + '/generate/video/' + data.id + (hq ? '?hq=true' : '')
+  let videoUrl = offloadUrl + '/generate/video/' + data.id + ".mp4" + (hq ? '?hq=true' : '')
   let videoMeta: { name: string; content: string }[] = []
 
   // getting media
@@ -17,10 +17,10 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
         name: 'og:video',
         content: videoUrl
       },
-      {
-        name: 'og:video:secure_url',
-        content: videoUrl
-      },
+      // {
+      //   name: 'og:video:secure_url',
+      //   content: videoUrl
+      // },
       {
         name: 'og:video:type',
         content: 'video/mp4'
@@ -35,17 +35,17 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
       },
       {
         name: 'og:type',
-        content: 'video'
+        content: 'video.other'
       },
       {
         name: 'og:video:type',
         content: 'video/mp4'
       },
 
-      {
-        name: 'twitter:card',
-        content: 'player'
-      },
+      // {
+      //   name: 'twitter:card',
+      //   content: 'player'
+      // },
       {
         name: 'twitter:player:height',
         content: data.video.height.toString()

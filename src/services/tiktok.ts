@@ -73,6 +73,20 @@ async function fetchTikTokPage(url: string, cacheOptions?: any): Promise<string>
 }
 
 export async function grabAwemeId(videoId: string): Promise<URL> {
+  const redis = await getRedisClient()
+  const cacheKey = `tiktok:aweme:${videoId}`
+
+  if (redis) {
+    try {
+      const cached = await redis.get(cacheKey)
+      if (cached) {
+        return new URL(cached)
+      }
+    } catch (err) {
+      console.error('Redis error:', err)
+    }
+  }
+
   const res = await fetch('https://vm.tiktok.com/' + videoId, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)'
@@ -83,8 +97,30 @@ export async function grabAwemeId(videoId: string): Promise<URL> {
     },
     redirect: 'manual'
   })
-  const location = res.headers.get('Location') || res.headers.get('location')
+
+  let location = res.headers.get('Location') || res.headers.get('location')
   if (!location) throw new Error('No Location header found in response')
+
+  // patch: if the location includes /v/, extract the id and format it properly
+  // somehow popped up after oracle update, i have no idea why
+  if (location.includes('/v/')) {
+    const urlObj = new URL(location)
+    const videoIdPart = urlObj.pathname.match(/\/v\/[^\/]+/)
+
+    if (videoIdPart && videoIdPart[0]) {
+      const awemeId = videoIdPart[0].replace('/v/', '').split('.')[0]
+      location = `https://www.tiktok.com/@unknown/video/${awemeId}`
+    }
+  }
+
+  if (redis) {
+    try {
+      await redis.setEx(cacheKey, REDIS_TTL, location)
+    } catch (err) {
+      console.error('Redis set error:', err)
+    }
+  }
+
   return new URL(location)
 }
 
@@ -130,25 +166,29 @@ export async function scrapePageData(
 
           if (scopeType == 'video') {
             const videoData = scopeData as WebappVideoDetail
-            const user = videoData.itemInfo.itemStruct.author
+            const user = videoData?.itemInfo?.itemStruct?.author
 
-            await redis.setEx(`tiktok:pfp:${user.id}`, REDIS_TTL, JSON.stringify(user))
-            await redis.setEx(`tiktok:pfp:${user.uniqueId}`, REDIS_TTL, JSON.stringify(user))
+            if (user?.id && user?.uniqueId) {
+              await redis.setEx(`tiktok:pfp:${user.id}`, REDIS_TTL, JSON.stringify(user))
+              await redis.setEx(`tiktok:pfp:${user.uniqueId}`, REDIS_TTL, JSON.stringify(user))
+            }
           } else if (scopeType == 'user') {
             const userData = scopeData as WebappUserDetail
 
-            if (userData.userInfo) {
+            if (userData?.userInfo) {
               const user = userData.userInfo.user
 
-              await redis.setEx(`tiktok:pfp:${user.id}`, REDIS_TTL, JSON.stringify(user))
-              await redis.setEx(`tiktok:pfp:${user.uniqueId}`, REDIS_TTL, JSON.stringify(user))
+              if (user?.id && user?.uniqueId) {
+                await redis.setEx(`tiktok:pfp:${user.id}`, REDIS_TTL, JSON.stringify(user))
+                await redis.setEx(`tiktok:pfp:${user.uniqueId}`, REDIS_TTL, JSON.stringify(user))
 
-              const idKey = `tiktok:user:${user.id}`
+                const idKey = `tiktok:user:${user.id}`
 
-              if (idKey !== cacheKey) {
-                await redis.setEx(idKey, REDIS_TTL, JSON.stringify(scopeData))
-              } else {
-                await redis.setEx(`tiktok:user:${user.uniqueId}`, REDIS_TTL, JSON.stringify(scopeData))
+                if (idKey !== cacheKey) {
+                  await redis.setEx(idKey, REDIS_TTL, JSON.stringify(scopeData))
+                } else {
+                  await redis.setEx(`tiktok:user:${user.uniqueId}`, REDIS_TTL, JSON.stringify(scopeData))
+                }
               }
             }
           }
@@ -171,6 +211,7 @@ export async function scrapeVideoData(awemeId: string, author?: string): Promise
   })
 
   if (result instanceof Error) return result
+  if (!result.itemInfo?.itemStruct) return new Error('Could not find video data')
   return result.itemInfo.itemStruct
 }
 

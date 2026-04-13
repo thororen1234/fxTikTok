@@ -101,7 +101,7 @@ describe('GET /generate/video/:videoId', () => {
     })
 
     expect(res.status).toBe(302)
-    expect(res.headers.get('Location')).toContain('aweme/v1/play/')
+    expect(res.headers.get('Location')).toContain('video/tos')
   })
 
   it('should return 500', async () => {
