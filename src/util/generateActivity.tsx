@@ -2,19 +2,19 @@ import { scrapeVideoData } from '@/services/tiktok'
 import { Context } from 'hono'
 import { formatNumber } from './format'
 import { env } from 'hono/adapter'
+import { buildActivityId, parseActivityId } from './activityId'
 
 export const IMAGES_PER_PAGE = 4
-
 
 export default async function generateActivity(param: string, c: Context) {
   const { OFF_LOAD } = env(c) as { OFF_LOAD: string }
   const offloadUrl = OFF_LOAD || 'https://offload.tnktok.com'
 
-  const videoId = param.replace(/[^0-9]/g, '')
-  const hq = param.includes('hq')
-  const forceDescription = param.includes('desc')
-  const pageParam = parseInt(c.req.query('page') || '1')
-  const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
+  const activity = parseActivityId(param, c.req.query('page'))
+  const videoId = activity.videoId
+  const hq = activity.hq
+  const forceDescription = activity.addDesc
+  const page = activity.page
 
   const videoInfo = await scrapeVideoData(videoId)
   if (videoInfo instanceof Error)
@@ -26,6 +26,7 @@ export default async function generateActivity(param: string, c: Context) {
   const totalImages = videoInfo.imagePost?.images?.length || 0
   const totalPages = Math.ceil(totalImages / IMAGES_PER_PAGE)
   const currentPage = totalPages > 0 ? Math.min(page, totalPages) : 1
+  const activityId = buildActivityId(videoId, { hq, addDesc: forceDescription, page: currentPage })
   const base = 'https://tiktok.com/@' + videoInfo.author.uniqueId + '/video/' + videoId
   const statusUrl = totalImages > 0 && totalPages > 1 ? base + '?page=' + currentPage : base
 
@@ -114,7 +115,7 @@ export default async function generateActivity(param: string, c: Context) {
   }
 
   return {
-    id: videoId,
+    id: activityId,
     url: statusUrl,
     uri: statusUrl,
     created_at: new Date(parseInt(videoInfo.createTime) * 1000).toISOString(),

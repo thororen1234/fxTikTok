@@ -9,6 +9,7 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
   const offloadUrl = OFF_LOAD || 'https://offload.tnktok.com'
   const pageParam = parseInt(c.req.query('page') || '1')
   const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
+  let activityPage = 1
 
   const videoUrl = offloadUrl + '/generate/video/' + data.id + '.mp4' + (hq ? '?hq=true' : '')
   let videoMeta: { name: string; content: string }[] = []
@@ -74,6 +75,7 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
     const totalImages = data.imagePost.images.length
     const totalPages = Math.ceil(totalImages / IMAGES_PER_PAGE)
     const currentPage = totalPages > 0 ? Math.min(page, totalPages) : 1
+    activityPage = currentPage
     const startIndex = (currentPage - 1) * IMAGES_PER_PAGE
     const endIndex = Math.min(startIndex + IMAGES_PER_PAGE, totalImages)
 
@@ -159,7 +161,8 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
         },
         data.id,
         hq,
-        addDesc
+        addDesc,
+        activityPage
       )}
     </>
   )
