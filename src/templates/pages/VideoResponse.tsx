@@ -2,12 +2,15 @@ import MetaHelper from '../../util/metaHelper'
 import { ItemStruct } from '../../types/Web'
 import { Context } from 'hono'
 import { env } from 'hono/adapter'
+import { IMAGES_PER_PAGE } from '../../util/generateActivity'
 
 export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c: Context): JSX.Element {
   const { OFF_LOAD } = env(c) as { OFF_LOAD: string }
   const offloadUrl = OFF_LOAD || 'https://offload.tnktok.com'
+  const pageParam = parseInt(c.req.query('page') || '1')
+  const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
 
-  let videoUrl = offloadUrl + '/generate/video/' + data.id + ".mp4" + (hq ? '?hq=true' : '')
+  const videoUrl = offloadUrl + '/generate/video/' + data.id + '.mp4' + (hq ? '?hq=true' : '')
   let videoMeta: { name: string; content: string }[] = []
 
   // getting media
@@ -68,14 +71,19 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
       }
     ]
   } else {
-    const numberOfImages = data.imagePost.images.length > 4 ? 4 : data.imagePost.images.length
+    const totalImages = data.imagePost.images.length
+    const totalPages = Math.ceil(totalImages / IMAGES_PER_PAGE)
+    const currentPage = totalPages > 0 ? Math.min(page, totalPages) : 1
+    const startIndex = (currentPage - 1) * IMAGES_PER_PAGE
+    const endIndex = Math.min(startIndex + IMAGES_PER_PAGE, totalImages)
 
-    for (let i = 0; i < numberOfImages; i++) {
-      videoMeta = [
-        ...videoMeta,
+    videoMeta = data.imagePost.images.slice(startIndex, endIndex).flatMap((_, offset) => {
+      const imageIndex = startIndex + offset
+
+      return [
         {
           name: 'og:image',
-          content: offloadUrl + '/generate/image/' + data.id + '?index=' + i
+          content: offloadUrl + '/generate/image/' + data.id + '?index=' + imageIndex
         },
         {
           name: 'og:image:type',
@@ -98,7 +106,7 @@ export function VideoResponse(data: ItemStruct, addDesc: boolean, hq: boolean, c
           content: 'summary_large_image'
         }
       ]
-    }
+    })
   }
 
   return (

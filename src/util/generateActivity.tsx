@@ -3,6 +3,9 @@ import { Context } from 'hono'
 import { formatNumber } from './format'
 import { env } from 'hono/adapter'
 
+export const IMAGES_PER_PAGE = 4
+
+
 export default async function generateActivity(param: string, c: Context) {
   const { OFF_LOAD } = env(c) as { OFF_LOAD: string }
   const offloadUrl = OFF_LOAD || 'https://offload.tnktok.com'
@@ -10,6 +13,8 @@ export default async function generateActivity(param: string, c: Context) {
   const videoId = param.replace(/[^0-9]/g, '')
   const hq = param.includes('hq')
   const forceDescription = param.includes('desc')
+  const pageParam = parseInt(c.req.query('page') || '1')
+  const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
 
   const videoInfo = await scrapeVideoData(videoId)
   if (videoInfo instanceof Error)
@@ -18,6 +23,11 @@ export default async function generateActivity(param: string, c: Context) {
     }
 
   let media = []
+  const totalImages = videoInfo.imagePost?.images?.length || 0
+  const totalPages = Math.ceil(totalImages / IMAGES_PER_PAGE)
+  const currentPage = totalPages > 0 ? Math.min(page, totalPages) : 1
+  const base = 'https://tiktok.com/@' + videoInfo.author.uniqueId + '/video/' + videoId
+  const statusUrl = totalImages > 0 && totalPages > 1 ? base + '?page=' + currentPage : base
 
   const title = videoInfo.imagePost && videoInfo.imagePost.title ? `<b>${videoInfo.imagePost.title}</b><br>` : ''
 
@@ -75,11 +85,11 @@ export default async function generateActivity(param: string, c: Context) {
     if (!forceDescription) desc = '' // Clear description if video and not forced to add it, for aesthetic purposes
   }
 
-  if (videoInfo.imagePost && videoInfo.imagePost.images.length > 0) {
-    const maxImages = 4
-    const imageCount = Math.min(videoInfo.imagePost.images.length, maxImages)
+  if (videoInfo.imagePost && totalImages > 0) {
+    const startIndex = (currentPage - 1) * IMAGES_PER_PAGE
+    const endIndex = Math.min(startIndex + IMAGES_PER_PAGE, totalImages)
 
-    for (let i = 0; i < imageCount; i++) {
+    for (let i = startIndex; i < endIndex; i++) {
       media.push({
         id: videoId + '-image-' + i,
         type: 'image',
@@ -88,7 +98,7 @@ export default async function generateActivity(param: string, c: Context) {
         remote_url: null,
         preview_remote_url: null,
         text_url: null,
-        ...(videoInfo.imagePost.images.length > maxImages
+        ...(totalImages > IMAGES_PER_PAGE
           ? {
               description: 'Image (' + (i + 1) + ' of ' + videoInfo.imagePost.images.length + ')'
             }
@@ -105,8 +115,8 @@ export default async function generateActivity(param: string, c: Context) {
 
   return {
     id: videoId,
-    url: 'https://tiktok.com/@' + videoInfo.author.uniqueId + '/video/' + videoId,
-    uri: 'https://tiktok.com/@' + videoInfo.author.uniqueId + '/video/' + videoId,
+    url: statusUrl,
+    uri: statusUrl,
     created_at: new Date(parseInt(videoInfo.createTime) * 1000).toISOString(),
     content:
       desc +

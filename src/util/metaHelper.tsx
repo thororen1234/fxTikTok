@@ -15,6 +15,18 @@ export default function MetaHelper(
   addDesc?: boolean
 ): JSX.Element {
   const { OFF_LOAD } = env(c) as { OFF_LOAD: string }
+  
+  const pageParam = parseInt(c.req.query('page') || '1')
+  const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
+  const activityId = awemeId ? awemeId + (hq ? 'hq' : '') + (addDesc ? 'desc' : '') : null
+  const activityUrl = activityId
+    ? new URL((OFF_LOAD || 'https://offload.tnktok.com') + '/users/' + 'username' + '/statuses/' + activityId)
+    : null
+
+  if (activityUrl && page > 1) {
+    activityUrl.searchParams.set('page', page.toString())
+  }
+
   let alternateUrl = new URL((OFF_LOAD || 'https://offload.tnktok.com') + '/generate/alternate')
 
   if (alternate) {
@@ -29,19 +41,7 @@ export default function MetaHelper(
         {tags.map((tag) => (tag.content ? <meta property={tag.name} content={tag.content} /> : null))}
         {alternate ? <link rel='alternate' href={alternateUrl.toString()} type='application/json+oembed' /> : null}
         {awemeId ? (
-          <link
-            rel='alternate'
-            type='application/activity+json'
-            href={
-              (OFF_LOAD || 'https://offload.tnktok.com') +
-              '/users/' +
-              'username' +
-              '/statuses/' +
-              awemeId +
-              (hq ? 'hq' : '') +
-              (addDesc ? 'desc' : '')
-            }
-          />
+          <link rel='alternate' type='application/activity+json' href={activityUrl?.toString()} />
         ) : null}
       </head>
     </html>
