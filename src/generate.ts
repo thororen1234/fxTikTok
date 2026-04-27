@@ -52,25 +52,32 @@ generate.get('/video/:videoId', async (c) => {
 
     let playUrl: string | undefined
 
-    if (hq) {
-      const h265Video = data.video.bitrateInfo.find((b) => b.CodecType.includes('h265'))
-      playUrl = h265Video?.PlayAddr?.UrlList?.find((u: string) => u.includes('/aweme/v1/play/'))
-    } else if (isTelegramBot) {
+    // Helper to get the standard play URL
+    // standard play URL is always h264 and available for all videos
+    const getFallbackUrl = () => data.video?.PlayAddrStruct?.UrlList?.find((u: string) => u.includes('/aweme/v1/play/'))
+    
+    if (isTelegramBot) {
       const MAX_SIZE = 20971520 // 20MB in bytes, thanks @rafitamolin in #42
-      
-      const videosUnder20MB = data.video.bitrateInfo.filter((b) => {
-        const dataSize = parseInt(b.PlayAddr?.DataSize || '0')
-        const isValidSize = dataSize > 0 && dataSize <= MAX_SIZE
-        const isNotH265 = !b.CodecType.includes('h265')
-        return isValidSize && isNotH265
-      })
-      
+    
+      const videosUnder20MB = data.video.bitrateInfo?.filter((b) => {
+        const dataSize = parseInt(b.PlayAddr?.DataSize || '0');
+        return dataSize > 0 && dataSize <= MAX_SIZE && !b.CodecType.includes('h265')
+      }) || [];
+    
+      // Find the largest available video within size limits
       const largestVideo = videosUnder20MB
         .sort((a, b) => parseInt(b.PlayAddr?.DataSize || '0') - parseInt(a.PlayAddr?.DataSize || '0'))[0]
-      
+    
       playUrl = largestVideo?.PlayAddr?.UrlList?.find((u: string) => u.includes('/aweme/v1/play/'))
+    
+      if (!playUrl && parseInt(data.video?.PlayAddrStruct?.DataSize || '0') <= MAX_SIZE) {
+        playUrl = getFallbackUrl()
+      }
+    } else if (hq) {
+      const h265Video = data.video.bitrateInfo?.find((b) => b.CodecType.includes('h265'))
+      playUrl = h265Video?.PlayAddr?.UrlList?.find((u: string) => u.includes('/aweme/v1/play/')) || getFallbackUrl()
     } else {
-      playUrl = data.video?.PlayAddrStruct?.UrlList?.find((u: string) => u.includes('/aweme/v1/play/'))
+      playUrl = getFallbackUrl()
     }
 
     // For some reason, if you have any TikTok cookies set (meaning logged in), the normal CDN url redirects to a tiktok.com signed video.
