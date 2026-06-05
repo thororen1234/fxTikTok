@@ -1,13 +1,9 @@
-import { Counter, Histogram, Registry, collectDefaultMetrics } from 'prom-client'
+import { Counter, Histogram, Registry } from 'prom-client'
 
 const REQUEST_DURATION_BUCKETS = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
 
 const metricsRegistry = new Registry()
-const METRICS_ENABLED = process.env.METRICS_ENABLED === 'true'
 
-if (METRICS_ENABLED) {
-  collectDefaultMetrics({ register: metricsRegistry })
-}
 
 const requestsTotal = new Counter({
   name: 'fxtiktok_requests_total',
@@ -44,12 +40,12 @@ export function withRoutePattern(routePattern: string, handler: (c: any) => Resp
 
 export function metricsMiddleware() {
   return async (c: any, next: () => Promise<void>) => {
-    if (!METRICS_ENABLED) {
+    if (process.env.METRICS_ENABLED !== 'true') {
       await next()
       return
     }
 
-    if (c.req.path === '/metrics') {
+    if (c.req.path === '/metrics' || c.req.path === '/favicon.ico') {
       await next()
       return
     }
@@ -93,7 +89,7 @@ export function metricsMiddleware() {
 }
 
 export async function serveMetrics() {
-  if (!METRICS_ENABLED) {
+  if (process.env.METRICS_ENABLED !== 'true') {
     return new Response('Not found', { status: 404 })
   }
 

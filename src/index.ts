@@ -27,6 +27,8 @@ app.get(
   })
 )
 
+app.get('/favicon.ico', () => new Response(null, { status: 204 }))
+
 async function handleShort(c: any): Promise<Response> {
   const { videoId } = c.req.param()
   if (videoId.startsWith('@')) return handleProfile(videoId.startsWith('@') ? videoId.substring(1) : videoId, c) // since its a short url (/@username), busted way of doing this since its technically defined as videoId. it's 12 am ok
