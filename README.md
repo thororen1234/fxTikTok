@@ -130,4 +130,28 @@ Once done, go to "Settings" and change your offload server under "Variables and 
 
 <img src=".github/readme/settings.png" alt="Settings Page, showing where to click to change your Offload Server" height="300px" style="border-radius:2%" />
 
-#### 🎉 That's it! You now have your own fxTikTok instance to use whenever, wherever you like.
+## 📈 Observability
+
+fxTikTok exposes Prometheus metrics at `/metrics` only when `METRICS_ENABLED=true` is set in the environment. Route traffic is grouped by route pattern, not raw URLs, so `/@user/video/123` and `/@other/video/456` both roll up under the same route label.
+
+The API uses the [prom-client](https://github.com/siimon/prom-client) npm package to keep in-process counters and latency histograms with low overhead and no per-request storage. Historical reporting comes from Prometheus retention, which is what lets Grafana show hourly, daily, and longer time ranges even though application counters reset on restart.
+
+Example Prometheus scrape config:
+
+```yaml
+scrape_configs:
+  - job_name: fxtiktok
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - your-api-domain.example.com
+```
+
+Useful exported metrics:
+
+- `fxtiktok_requests_total{route,method,status_class}`
+- `fxtiktok_request_duration_seconds_bucket{route,method,le}`
+- `fxtiktok_request_duration_seconds_sum{route,method}`
+- `fxtiktok_request_duration_seconds_count{route,method}`
+- `fxtiktok_unhandled_exceptions_total{route,method,exception_type}`
+- standard process/runtime metrics from `prom-client.collectDefaultMetrics()`
