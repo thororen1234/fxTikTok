@@ -16,7 +16,13 @@ services:
       offload:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bun", "-e", "const port = process.env.PORT || 3000; const r = await fetch(`http://127.0.0.1:${port}/favicon.ico`); process.exit(r.status === 204 ? 0 : 1)"]
+      test:
+        [
+          "CMD",
+          "bun",
+          "--eval",
+          "const port = process.env.PORT || 3000; const res = await fetch('http://127.0.0.1:' + port + '/favicon.ico'); process.exit(res.status === 204 ? 0 : 1)"
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -32,7 +38,13 @@ services:
     ports:
       - "${OFFLOAD_PORT:-8787}:${OFFLOAD_PORT:-8787}"
     healthcheck:
-      test: ["CMD", "bun", "-e", "const port = process.env.PORT || 8787; const r = await fetch(`http://127.0.0.1:${port}/`); process.exit(r.ok ? 0 : 1)"]
+      test:
+        [
+          "CMD",
+          "bun",
+          "--eval",
+          "const port = process.env.PORT || 8787; const res = await fetch('http://127.0.0.1:' + port + '/'); process.exit(res.ok ? 0 : 1)"
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
