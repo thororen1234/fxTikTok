@@ -3,7 +3,7 @@ import { generate, respondAlternative } from './generate'
 import generateActivity from './util/generateActivity'
 
 const app = new Hono()
-const PORT = 8787
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8787
 const firstStart = Date.now()
 
 export const logMiddleware = () => async (c: Context, next: () => Promise<void>) => {

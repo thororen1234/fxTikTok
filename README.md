@@ -154,4 +154,3 @@ Useful exported metrics:
 - `fxtiktok_request_duration_seconds_sum{route,method}`
 - `fxtiktok_request_duration_seconds_count{route,method}`
 - `fxtiktok_unhandled_exceptions_total{route,method,exception_type}`
-- standard process/runtime metrics from `prom-client.collectDefaultMetrics()`
