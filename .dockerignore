@@ -8,6 +8,7 @@
 .prettierrc.json
 Dockerfile
 docker-compose.yml
+docker-compose.local.yml
 dist
 grafana
 jest.config.js
