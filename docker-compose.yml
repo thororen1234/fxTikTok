@@ -5,11 +5,11 @@ services:
     image: fxtiktok:local
     command: ["bun", "run", "src/index.ts"]
     environment:
-      PORT: 3000
-      OFF_LOAD: ${OFF_LOAD:https://offload.tnktok.com}
-      METRICS_ENABLED: ${METRICS_ENABLED:-false}
-      REDIS_ENABLED: ${REDIS_ENABLED:-false}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      PORT: "3000"
+      OFF_LOAD: "${OFF_LOAD:-https://offload.tnktok.com}"
+      METRICS_ENABLED: "${METRICS_ENABLED:-false}"
+      REDIS_ENABLED: "${REDIS_ENABLED:-false}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
     expose:
       - "3000"
     depends_on:
@@ -34,7 +34,7 @@ services:
     image: fxtiktok:local
     command: ["bun", "run", "src/offload.ts"]
     environment:
-      PORT: 8787
+      PORT: "8787"
     expose:
       - "8787"
     healthcheck:
