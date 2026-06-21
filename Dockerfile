@@ -1,11 +1,15 @@
-FROM oven/bun:slim
+FROM oven/bun:1-alpine
+
 WORKDIR /app
+ENV NODE_ENV=production
 
 COPY package*.json bun.lock ./
-RUN bun i
+RUN if [ -f bun.lock ]; then bun install --frozen-lockfile --production; else bun install --production; fi
 
 COPY . .
-COPY start.sh .
 
 RUN chmod +x start.sh
+USER bun
+EXPOSE 3000 8787
+
 CMD ["./start.sh"]
