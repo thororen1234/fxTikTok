@@ -3,6 +3,7 @@ services:
     build:
       context: .
     image: fxtiktok:local
+    restart: unless-stopped
     command: ["bun", "run", "src/index.ts"]
     environment:
       PORT: "3000"
@@ -32,6 +33,7 @@ services:
     build:
       context: .
     image: fxtiktok:local
+    restart: unless-stopped
     command: ["bun", "run", "src/offload.ts"]
     environment:
       PORT: "8787"
