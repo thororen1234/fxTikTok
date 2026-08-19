@@ -88,9 +88,6 @@ export async function grabAwemeId(videoId: string): Promise<URL> {
   }
 
   const res = await fetch('https://vm.tiktok.com/' + videoId, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)'
-    },
     cf: {
       cacheEverything: false,
       cacheTtlByStatus: { '301-302': 86400, 404: 1, '500-599': 0 }
